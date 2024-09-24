@@ -1,7 +1,6 @@
 import asyncio
-import io
 
-from sqlalchemy import text, create_engine
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 # 创建数据库引擎
@@ -56,22 +55,71 @@ async def test_transaction():
         # SERIALIZABLE
         print("===> engine.begin() get_isolation_level ", await conn.get_isolation_level())
 
+    # 测试事务，engine.connect() 默认事务不提交
+    await connect_without_commit()
+    # 测试事务，engine.connect() connect.commit 提交事务
+    await connect_with_commit()
+    # 测试事务 engine.begin 默认带事务
+    await begin_with_commit()
+
+
+async def connect_without_commit():
     # 测试事务
+    # 默认不提交事务，直到遇到connection.commit
     async with engine.connect() as conn:
         # REPEATABLE READ
         print("===> engine.begin() get_isolation_level ", await conn.get_isolation_level())
-        sql = "INSERT INTO demo_parent (id, data) VALUES (3, null)"
+        sql = "INSERT INTO demo_parent (id, data) VALUES (3, '测试事务connect_without_commit')"
         result = await conn.execute(text(sql))
         print("===> insert", result)
 
         # 查询
         await get_all_date(conn)
 
-    print("===> ------------")
+    print("===> connect_without_commit")
     # 查询
     async with engine.connect() as conn:
-      await get_all_date(conn)
+        await get_all_date(conn)
 
+async def connect_with_commit():
+    # 测试事务
+    # connection.commit 提交事务
+    async with engine.connect() as conn:
+        # REPEATABLE READ
+        print("===> engine.begin() get_isolation_level ", await conn.get_isolation_level())
+        sql = "INSERT INTO demo_parent (id, data) VALUES (3, '测试事务connect_with_commit')"
+        result = await conn.execute(text(sql))
+        print("===> insert", result)
+
+        # 查询
+        await get_all_date(conn)
+        # 提交事务
+        await conn.commit()
+
+    print("===> connect_with_commit")
+    # 查询
+    async with engine.connect() as conn:
+        await get_all_date(conn)
+
+async def begin_with_commit():
+    # 测试事务
+    # connection.commit 提交事务
+    async with engine.begin() as conn:
+        # REPEATABLE READ
+        print("===> engine.begin() get_isolation_level ", await conn.get_isolation_level())
+        sql = "INSERT INTO demo_parent (id, data) VALUES (4, '测试事务 begin_with_commit')"
+        result = await conn.execute(text(sql))
+        print("===> insert", result)
+        # 查询
+        await get_all_date(conn)
+
+
+
+
+    print("===> begin_with_commit")
+    # 查询
+    async with engine.connect() as conn:
+        await get_all_date(conn)
 
 print("===> before run")
 asyncio.run(test_transaction())

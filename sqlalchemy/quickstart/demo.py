@@ -65,7 +65,9 @@ async def async_main():
 
     print('===> uow_factory')
     async with uow_factory() as uow:
-        uow.add(Parent(children=[Child()]))
+        p = Parent(children=[Child()])
+        p.data = 'init'
+        uow.add(p)
         await uow.commit()
 
     print('===> 查询 and 更新')
@@ -73,11 +75,12 @@ async def async_main():
         async with uow_factory() as uow:
             stmt = select(Parent).with_for_update(of=Parent)
             result = await uow.execute(stmt)
+            print('===> 查询结束:', result)
             for item in result.scalars():
                 print('===> item.data', item.id, item.data)
-                print('===> item.children', item.children)
                 item.data = "updated"
                 # item.children # Raises sqlalchemy.exc.MissingGreenlet
+            # await uow.commit
     except:
         print('===> sleep(5)')
         await asyncio.sleep(5)

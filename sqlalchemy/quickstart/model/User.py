@@ -1,4 +1,5 @@
 import datetime
+from dataclasses import dataclass
 from typing import List
 
 from sqlalchemy import String, DateTime, Integer, func, Boolean, ForeignKey
@@ -8,7 +9,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 class Base(DeclarativeBase):
     pass
 
-
+@dataclass
 class User(Base):
     __tablename__ = "t_user"
 
@@ -29,13 +30,13 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(50), comment="邮箱地址")
     birthday: Mapped[datetime] = mapped_column(DateTime, nullable=True, comment="生日")
     age: Mapped[int] = mapped_column(Integer, nullable=True, comment="年龄")
-    remark: Mapped[str] = mapped_column(String(1000), comment="备注")
-    create_by: Mapped[str] = mapped_column(String(1000), comment="创建人")
-    update_by: Mapped[str] = mapped_column(String(1000), comment="更新人")
+    remark: Mapped[str | None] = mapped_column(String(1000), comment="备注")
+    create_by: Mapped[str] = mapped_column(String(1000), default='admin', comment="创建人")
+    update_by: Mapped[str] = mapped_column(String(1000), default='admin', comment="更新人")
 
-    # 一对多关联
-    addresses: Mapped[List["Address"]] = relationship(
-        back_populates="user", cascade="all, delete-orphan"
+    # # 一对多关联
+    addresses: Mapped[List["Address"] | None] = relationship(
+        back_populates="user", cascade="all, delete-orphan",lazy="joined",uselist=True
     )
 
 
@@ -47,7 +48,7 @@ class Address(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("t_user.id"))
 
     # 一对一关联
-    user: Mapped["User"] = relationship(back_populates="addresses")
+    user: Mapped["User"] = relationship(back_populates="addresses",lazy="joined")
 
     def __repr__(self) -> str:
         return f"Address(id={self.id!r}, email_address={self.email_address!r})"
